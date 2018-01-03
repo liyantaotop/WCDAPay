@@ -33,6 +33,11 @@ abstract class Wechat implements GatewayInterface
     protected $gateway_refund = 'https://api.mch.weixin.qq.com/secapi/pay/refund';
 
     /**
+     * @var string
+     */
+    protected $gateway_redpack = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/sendredpack';
+
+    /**
      * @var array
      */
     protected $config;
@@ -89,6 +94,23 @@ abstract class Wechat implements GatewayInterface
         $this->unsetTradeTypeAndNotifyUrl();
 
         return $this->getResult($this->gateway_refund, true);
+    }
+
+    /**
+     * redpack.
+     *
+     * @author pengcheng
+     *
+     * @return string|bool
+     */
+    public function redpack($config_biz = [])
+    {
+        $config_biz['wxappid'] =  $this->user_config->get('app_id', '');
+        $this->config = array_merge($this->config, $config_biz);
+
+        $this->unsetRedpackConfig();
+
+        return $this->getResult($this->gateway_redpack, true);
     }
 
     /**
@@ -239,6 +261,28 @@ abstract class Wechat implements GatewayInterface
     }
 
     /**
+     * sign.
+     *
+     * @author pengcheng
+     *
+     * @param array $data
+     *
+     * @return string
+     */
+    protected function getAppSign($data)
+    {
+        if (is_null($this->user_config->get('open_key'))) {
+            throw new InvalidArgumentException('Missing Config -- [key]');
+        }
+
+        ksort($data);
+
+        $string = md5($this->getSignContent($data).'&key='.$this->user_config->get('open_key'));
+
+        return strtoupper($string);
+    }
+
+    /**
      * get sign content.
      *
      * @author yansongda <me@yansongda.cn>
@@ -297,7 +341,7 @@ abstract class Wechat implements GatewayInterface
         $xml = '<xml>';
         foreach ($data as $key => $val) {
             $xml .= is_numeric($val) ? '<'.$key.'>'.$val.'</'.$key.'>' :
-                                       '<'.$key.'><![CDATA['.$val.']]></'.$key.'>';
+                '<'.$key.'><![CDATA['.$val.']]></'.$key.'>';
         }
         $xml .= '</xml>';
 
@@ -335,6 +379,20 @@ abstract class Wechat implements GatewayInterface
     {
         unset($this->config['notify_url']);
         unset($this->config['trade_type']);
+
+        return true;
+    }
+
+    /**
+     * delete some config param.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @return bool
+     */
+    protected function unsetRedpackConfig()
+    {
+        unset($this->config['sign_type']);
 
         return true;
     }

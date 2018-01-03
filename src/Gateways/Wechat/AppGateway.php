@@ -36,14 +36,14 @@ class AppGateway extends Wechat
         $this->config['appid'] = $this->user_config->get('appid');
 
         $payRequest = [
-            'appid'     => $this->user_config->get('appid'),
-            'partnerid' => $this->user_config->get('mch_id'),
+            'appid'     => $this->user_config->get('open_appid'),
+            'partnerid' => $this->user_config->get('open_mch_id'),
             'prepayid'  => $this->preOrder($config_biz)['prepay_id'],
             'timestamp' => time(),
             'noncestr'  => $this->createNonceStr(),
             'package'   => 'Sign=WXPay',
         ];
-        $payRequest['sign'] = $this->getSign($payRequest);
+        $payRequest['sign'] = $this->getAppSign($payRequest);
 
         return $payRequest;
     }
