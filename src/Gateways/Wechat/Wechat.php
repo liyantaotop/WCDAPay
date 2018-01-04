@@ -192,6 +192,49 @@ abstract class Wechat implements GatewayInterface
         return $this->getResult($this->gateway);
     }
 
+    protected function preAppOrder($config_biz = [])
+    {
+        $this->config = array_merge($this->config, $config_biz);
+
+        return $this->getAppResult($this->gateway);
+    }
+
+    protected function getAppResult($end_point, $cert = false)
+    {
+        $this->config['sign'] = $this->getAppSign($this->config);
+
+        if ($cert) {
+            $data = $this->fromXml($this->post(
+                $end_point,
+                $this->toXml($this->config),
+                [
+                    'cert'    => $this->user_config->get('cert_client', ''),
+                    'ssl_key' => $this->user_config->get('cert_key', ''),
+                ]
+            ));
+        } else {
+            $data = $this->fromXml($this->post($end_point, $this->toXml($this->config)));
+        }
+
+        if (!isset($data['return_code']) || $data['return_code'] !== 'SUCCESS' || $data['result_code'] !== 'SUCCESS') {
+            $error = 'getResult error:'.$data['return_msg'];
+            $error .= isset($data['err_code_des']) ? ' - '.$data['err_code_des'] : '';
+        }
+
+        if (!isset($error) && $this->getSign($data) !== $data['sign']) {
+            $error = 'getResult error: return data sign error';
+        }
+
+        if (isset($error)) {
+            throw new GatewayException(
+                $error,
+                20000,
+                $data);
+        }
+
+        return $data;
+    }
+
     /**
      * get api result.
      *
